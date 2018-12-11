@@ -23,7 +23,7 @@ def fuel_cell(x, y, serial):
     return hundreds(((rack_id * y) + serial) * rack_id) - 5
 
 def hundreds(num):
-    return int("{:04d}".format(num)[-3])
+    return abs(num) // 100 % 10
 
 def sum_neighbors(grid, size=3):
     ylen = len(grid)
