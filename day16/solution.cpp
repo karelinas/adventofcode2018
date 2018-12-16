@@ -1,4 +1,8 @@
 // g++ -std=c++17 -O3 -Wall -c solution.cpp -o solution.o
+// g++ -std=c++17 -O3 -Wall cpu.cpp -c -o cpu.o
+// g++ cpu.o solution.o -o main
+// ./main
+
 
 #include "cpu.hpp"
 
@@ -23,28 +27,35 @@ struct Sample
     Cpu cpu_after;
 };
 
-std::ostream& operator<<(std::ostream& os, const Sample& sample)
+std::ostream& operator<<(std::ostream& os, const Cpu& cpu)
 {
-    os << "=============================\n";
-    os << "Before: ";
-    for (auto reg : sample.cpu_before.gpr) {
+    os << "Cpu: ";
+    for (auto reg : cpu.gpr) {
         os << static_cast<int>(reg) << " ";
     }
-    os << '\n';
-    os << "Instr: "
-       << static_cast<int>(sample.instruction.opcode) << " "
-       << static_cast<int>(sample.instruction.a_in) << " "
-       << static_cast<int>(sample.instruction.b_in) << " "
-       << static_cast<int>(sample.instruction.c_out) << '\n';
-    os << "After: ";
-    for (auto reg : sample.cpu_after.gpr) {
-        os << static_cast<int>(reg) << " ";
-    }
-    os << '\n';
     return os;
 }
 
-uint8_t char_to_int(char c)
+std::ostream& operator<<(std::ostream& os, const Instruction& instr)
+{
+    os << "Instr: "
+       << static_cast<int>(instr.opcode) << " "
+       << static_cast<int>(instr.a_in) << " "
+       << static_cast<int>(instr.b_in) << " "
+       << static_cast<int>(instr.c_out) << '\n';
+    return os;
+}
+
+std::ostream& operator<<(std::ostream& os, const Sample& sample)
+{
+    os << "=============================\n";
+    os << "Before: " << sample.cpu_before << '\n';
+    os << "Instr: " << sample.instruction << '\n';
+    os << "After: " << sample.cpu_after << '\n';
+    return os;
+}
+
+uint32_t char_to_int(char c)
 {
     assert(c >= '0' && c <= '9');
     return c - '0';
@@ -75,10 +86,10 @@ Instruction read_instruction_line(std::string line)
     ss >> a_in;
     ss >> b_in;
     ss >> c_out;
-    return Instruction{static_cast<uint8_t>(opcode),
-                       static_cast<uint8_t>(a_in),
-                       static_cast<uint8_t>(b_in),
-                       static_cast<uint8_t>(c_out)};
+    return Instruction{static_cast<uint32_t>(opcode),
+                       static_cast<uint32_t>(a_in),
+                       static_cast<uint32_t>(b_in),
+                       static_cast<uint32_t>(c_out)};
 }
 
 std::optional<Sample> read_sample(std::ifstream& filein)
@@ -102,6 +113,34 @@ std::optional<Sample> read_sample(std::ifstream& filein)
     };
 }
 
+void find_matches(Sample& sample, std::map<uint32_t, std::vector<std::string>>& matches)
+{
+    // add all instructions to matches if it's the first time we've
+    // seen the opcode
+    if (matches.count(sample.instruction.opcode) == 0) {
+        matches[sample.instruction.opcode] = std::vector<std::string>{};
+        std::transform(std::begin(instruction_set), std::end(instruction_set),
+                       std::back_inserter(matches[sample.instruction.opcode]),
+                       [](decltype(instruction_set)::value_type instr) -> std::string {
+                           return instr.first;
+                       });
+    }
+    // test and remove opcodes that produce different results than expected
+    matches[sample.instruction.opcode].erase(
+        std::remove_if(std::begin(matches[sample.instruction.opcode]),
+                       std::end(matches[sample.instruction.opcode]),
+                       [&sample](std::string& instr) {
+                            auto handler = str_to_instruction(instr);
+                            Cpu expected{sample.cpu_before};
+                            handler(expected,
+                                    sample.instruction.a_in,
+                                    sample.instruction.b_in,
+                                    sample.instruction.c_out);
+                            return !(sample.cpu_after == expected);
+                       }),
+        std::end(matches[sample.instruction.opcode]));
+}
+
 int count_matches(Sample& sample,
                   const std::map<std::string, InstructionFunc*>& instructions)
 {
@@ -118,9 +157,9 @@ int count_matches(Sample& sample,
                        });
 }
 
-int main()
+void part1()
 {
-    std::map<uint8_t, std::vector<std::string>> matches;
+    std::map<uint32_t, std::vector<std::string>> matches;
     std::ifstream data("data.txt");
     int total_samples = 0;
     int over_three = 0;
@@ -134,4 +173,94 @@ int main()
     }
     std::cout << "Samples with over 3 matches: " << over_three << '\n';
     std::cout << "Total samples: " << total_samples << '\n';
+}
+
+void part2_find_matches()
+{
+    // part 2
+    std::map<uint32_t, std::vector<std::string>> matches;
+    std::ifstream data("data.txt");
+    while (data) {
+        if (auto sample = read_sample(data); sample) {
+            find_matches(*sample, matches);
+        }
+    }
+
+    for (auto const& [key, val] : matches) {
+        std::cout << static_cast<int>(key) << " => [ ";
+        for (auto const& instr : val) {
+            std::cout << "\"" << instr << "\"" << " ";
+        }
+        std::cout << "]\n";
+    }
+}
+
+std::optional<Instruction> read_instruction(std::string line)
+{
+    if (line.size() < 6) {
+        return {};
+    }
+    return read_instruction_line(line);
+}
+
+std::vector<Instruction> read_program(std::string file)
+{
+    std::ifstream data(file);
+    std::vector<Instruction> program;
+    std::string line;
+    while (std::getline(data, line)) {
+        if (auto instr = read_instruction(line); instr) {
+            program.push_back(*instr);
+        }
+    }
+    return program;
+}
+
+int main()
+{
+    part1();
+    part2_find_matches();
+
+    // solved manually from part2_find_matches() printout:
+    // 0 => [ "bani" ]
+    // 1 => [ "addr" ]
+    // 2 => [ "mulr" ]
+    // 3 => [ "addi" ]
+    // 4 => [ "gtri" ]
+    // 5 => [ "banr" ]
+    // 6 => [ "borr" ]
+    // 7 => [ "eqri" ]
+    // 8 => [ "seti" ]
+    // 9 => [ "eqrr" ]
+    // 10 => [ "bori" ]
+    // 11 => [ "setr" ]
+    // 12 => [ "eqir" ]
+    // 13 => [ "muli" ]
+    // 14 => [ "gtrr" ]
+    // 15 => [ "gtir" ]
+
+    Cpu cpu{{0, 0, 0, 0}, 0, read_program("data2.txt")};
+    std::cout << "Executing " << cpu.program.size() << " instructions\n";
+    run_cpu(cpu, [](uint32_t opcode) -> InstructionFunc* {
+            static const std::vector<InstructionFunc*> decoded_instr = {
+                &bani,
+                &addr,
+                &mulr,
+                &addi,
+                &gtri,
+                &banr,
+                &borr,
+                &eqri,
+                &seti,
+                &eqrr,
+                &bori,
+                &setr,
+                &eqir,
+                &muli,
+                &gtrr,
+                &gtir
+            };
+            return decoded_instr[opcode];
+        });
+    std::cout << cpu << '\n';
 }
