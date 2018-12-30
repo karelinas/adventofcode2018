@@ -1,0 +1,9 @@
+target = 10551361
+sum = 0
+end = sqrt(target)
+
+for (x = 1; x <= end; x++):
+    if target % x == 0:
+        sum += x
+        sum += target / x
+

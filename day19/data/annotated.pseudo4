@@ -1,0 +1,6 @@
+target = 10551361
+sum = 0
+
+for (x = 1; x <= target; x++):
+    if target % x == 0:
+        sum += x

@@ -1,0 +1,19 @@
+    sum = 0
+    target = 10551361
+LABEL4:
+    x = 1
+LABEL3:
+    y = 1
+LABEL2:
+    multiplied = x * y
+    if multiplied == target:
+        sum += x
+        y++
+    if y <= target:
+        goto LABEL2
+    x++
+
+    if x > target:
+        EXIT
+    goto LABEL3
+
