@@ -5,5 +5,3 @@ for (x = 1; x <= target; x++)
     for (y = 1; y <= target; y++)
         if x * y == target:
             sum += x
-    }
-}

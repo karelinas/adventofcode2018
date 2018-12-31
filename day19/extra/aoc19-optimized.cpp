@@ -9,7 +9,8 @@ int main()
 	for (int x = 1; x <= end; x++) {
 		if (target % x == 0) {
 			sum += x;
-			sum += (target / x);
+			if ((x*x) != target)
+				sum += (target / x);
 		}
 	}
 	std::cout << sum << '\n';

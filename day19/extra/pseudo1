@@ -8,7 +8,7 @@ LABEL2:
     multiplied = x * y
     if multiplied == target:
         sum += x
-        y++
+    y++
     if y <= target:
         goto LABEL2
     x++
