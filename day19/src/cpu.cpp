@@ -5,6 +5,7 @@
 
 #include <atomic>
 #include <iostream>
+#include <mutex>
 
 #include <signal.h>
 
@@ -31,9 +32,12 @@ void siginthandler(int)
 
 ExitStatus Cpu::run_program(const Program& program, std::ostream* out)
 {
-    exit_requested = false;
-    signal(SIGINT, siginthandler);
+    static std::once_flag signal_flag;
+    std::call_once(signal_flag, [](){
+        signal(SIGINT, siginthandler);
+    });
 
+    exit_requested = false;
     if (program.ip_reg) {
         if (*program.ip_reg >= gpr.size()) {
             // TODO: log error
