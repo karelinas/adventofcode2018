@@ -139,7 +139,7 @@ Program Program::unserialize(std::istream& is)
     // read instructions
     decltype(program.instructions)::size_type size = 0;
     is.read(reinterpret_cast<char*>(&size), sizeof(decltype(program.instructions)::size_type));
-    for (int i = 0; i < size; i++) {
+    for (decltype(size) i = 0; i < size; i++) {
         Instruction instr;
         is.read(reinterpret_cast<char*>(&instr), sizeof(Instruction));
         program.instructions.push_back(instr);

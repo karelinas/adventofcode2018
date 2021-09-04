@@ -30,7 +30,7 @@ int main(int argc, char* argv[])
                     .positional(positional_desc)
                     .run(), vm);
         po::notify(vm);
-    } catch (po::error e) {
+    } catch (po::error& e) {
         std::cerr << "Error: " << e.what() << '\n';
         return EXIT_FAILURE;
     }

@@ -16,6 +16,7 @@ std::ostream& operator<<(std::ostream& os, const aoc::cpu::Cpu& cpu)
         os << reg << " ";
     }
     os << "]  ip[ " << *cpu.ip << " ]";
+    return os;
 }
 
 namespace aoc::cpu
@@ -39,7 +40,7 @@ ExitStatus Cpu::run_program(const Program& program, std::ostream* out)
 
     exit_requested = false;
     if (program.ip_reg) {
-        if (*program.ip_reg >= gpr.size()) {
+        if (*program.ip_reg >= static_cast<word>(gpr.size())) {
             // TODO: log error
             std::cerr << "Ip reg too big\n";
             return ExitStatus::Error;
@@ -48,7 +49,7 @@ ExitStatus Cpu::run_program(const Program& program, std::ostream* out)
         ip = &gpr[*program.ip_reg];
     }
 
-    while (*ip < program.instructions.size()) {
+    while (*ip < static_cast<word>(program.instructions.size())) {
         auto instr = program.instructions[*ip];
 
 // Helper macros for the switch below
